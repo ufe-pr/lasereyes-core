@@ -178,9 +178,10 @@ export default class UnisatProvider extends WalletProvider {
     this.$store.setKey("paymentAddress", unisatAccounts[0]);
     this.$store.setKey("publicKey", unisatPubKey);
     this.$store.setKey("paymentPublicKey", unisatPubKey);
+    this.$store.setKey("provider", UNISAT);
     this.$library.set(lib);
     await this.getNetwork().then((network) => {
-      if (this.config!.network !== network) {
+      if (this.config?.network !== network) {
         this.switchNetwork(network);
       }
     });
@@ -188,7 +189,6 @@ export default class UnisatProvider extends WalletProvider {
     getBTCBalance(unisatAccounts[0], this.network).then((totalBalance) => {
       this.$store.setKey("balance", totalBalance);
     });
-    this.$store.setKey("provider", UNISAT);
     this.$store.setKey("connected", true);
     const balance = await lib.getBalance();
     if (balance) this.$store.setKey("balance", balance.total);
