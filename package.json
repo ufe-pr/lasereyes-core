@@ -1,13 +1,14 @@
 {
   "name": "lasereyes-core",
   "private": false,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "main": "./dist/index.umd.cjs",
   "module": "./dist/index.js",
   "files": [
     "dist"
   ],
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.js",
