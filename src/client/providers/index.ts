@@ -2,7 +2,9 @@ import { MapStore, WritableAtom } from "nanostores";
 import { LaserEyesStoreType } from "../types";
 import { Config, NetworkType, ProviderType } from "../../types";
 import { LaserEyesClient } from "..";
-
+export const UNSUPPORTED_PROVIDER_METHOD_ERROR = new Error(
+  "The connected wallet doesn't support this method..."
+);
 export abstract class WalletProvider {
   readonly $store: MapStore<LaserEyesStoreType>;
   readonly $network: WritableAtom<NetworkType>;
@@ -31,7 +33,10 @@ export abstract class WalletProvider {
 
   abstract requestAccounts(): Promise<string[]>;
 
-  abstract switchNetwork(network: NetworkType): void;
+  switchNetwork(_network: NetworkType): void {
+    this.parent.disconnect();
+    throw UNSUPPORTED_PROVIDER_METHOD_ERROR;
+  }
 
   abstract getNetwork(): Promise<NetworkType | undefined>;
 
