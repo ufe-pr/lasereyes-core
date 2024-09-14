@@ -3,6 +3,7 @@ import { MapStore, WritableAtom, subscribeKeys } from "nanostores";
 import { Config, NetworkType, ProviderType } from "../types";
 import {
   UNISAT,
+  XVERSE,
   // XVERSE,
   // OYL,
   // MAGIC_EDEN,
@@ -18,6 +19,7 @@ import { isBase64, isHex } from "../lib/helpers";
 import * as bitcoin from "bitcoinjs-lib";
 import { LaserEyesStoreType } from "./types";
 import { triggerDOMShakeHack } from "./utils";
+import XVerseProvider from "./providers/xverse";
 
 export class LaserEyesClient {
   readonly $store: MapStore<LaserEyesStoreType>;
@@ -39,6 +41,7 @@ export class LaserEyesClient {
     this.$network = stores.$network;
     this.$providerMap = {
       [UNISAT]: new UnisatProvider(stores, this, config),
+      [XVERSE]: new XVerseProvider(stores, this, config),
     };
     this.$network.subscribe(this.watchNetworkChange.bind(this));
     subscribeKeys(this.$store, ["isInitializing"], (v) =>
