@@ -9,10 +9,11 @@ import { ProviderType, NetworkType } from "../../types";
 import axios from "axios";
 import { getBTCBalance } from "../../lib/helpers";
 import { UNISAT } from "../../constants/wallets";
+import { listenKeys } from "nanostores";
 
 export default class UnisatProvider extends WalletProvider {
-  public get library(): any {
-    return this.$library.get();
+  public get library(): any | undefined {
+    return (window as any).unisat;
   }
 
   public get network(): NetworkType {
@@ -33,31 +34,31 @@ export default class UnisatProvider extends WalletProvider {
     });
 
     this.observer.observe(document, { childList: true, subtree: true });
-
-    this.$library.listen((lib, oldLib) => {
-      if (oldLib) {
-        oldLib.removeListener(
-          "accountsChanged",
-          this.handleAccountsChanged.bind(this)
-        );
-        oldLib.removeListener(
-          "networkChanged",
-          this.handleNetworkChanged.bind(this)
-        );
+    listenKeys(this.$store, ["provider"], (newStore) => {
+      if (newStore.provider !== UNISAT) {
+        this.removeListeners();
+        return;
       }
-      if (this.$store.get().provider !== UNISAT || !lib) return;
-
-      lib.getAccounts().then((accounts: string[]) => {
+      this.library.getAccounts().then((accounts: string[]) => {
         this.handleAccountsChanged(accounts);
       });
-
-      lib.on("accountsChanged", this.handleAccountsChanged.bind(this));
-      lib.on("networkChanged", this.handleNetworkChanged.bind(this));
+      this.addListeners();
     });
+  }
+
+  addListeners() {
+    this.library.on("accountsChanged", this.handleAccountsChanged.bind(this));
+    this.library.on("networkChanged", this.handleNetworkChanged.bind(this));
+  }
+
+  removeListeners() {
+    this.library.removeListener("accountsChanged", this.handleAccountsChanged.bind(this));
+    this.library.removeListener("networkChanged", this.handleNetworkChanged.bind(this));
   }
 
   dispose() {
     this.observer?.disconnect();
+    this.removeListeners();
   }
 
   private handleAccountsChanged(accounts: string[]) {
@@ -141,12 +142,7 @@ export default class UnisatProvider extends WalletProvider {
   }
   async pushPsbt(tx: string): Promise<string | undefined> {
     return await axios
-      .post(
-        `${getMempoolSpaceUrl(
-          this.network as Exclude<"testnet4", NetworkType>
-        )}/api/tx`,
-        tx
-      )
+      .post(`${getMempoolSpaceUrl(this.network as Exclude<"testnet4", NetworkType>)}/api/tx`, tx)
       .then((res) => res.data);
   }
 
@@ -167,11 +163,10 @@ export default class UnisatProvider extends WalletProvider {
   }
 
   async connect(_: ProviderType): Promise<void> {
-    const lib = (window as any).unisat;
-    if (!lib) throw new Error("Unisat isn't installed");
-    const unisatAccounts = await lib.requestAccounts();
+    if (!this.library) throw new Error("Unisat isn't installed");
+    const unisatAccounts = await this.library.requestAccounts();
     if (!unisatAccounts) throw new Error("No accounts found");
-    const unisatPubKey = await lib.getPublicKey();
+    const unisatPubKey = await this.library.getPublicKey();
     if (!unisatPubKey) throw new Error("No public key found");
     this.$store.setKey("accounts", unisatAccounts);
     this.$store.setKey("address", unisatAccounts[0]);
@@ -179,7 +174,6 @@ export default class UnisatProvider extends WalletProvider {
     this.$store.setKey("publicKey", unisatPubKey);
     this.$store.setKey("paymentPublicKey", unisatPubKey);
     this.$store.setKey("provider", UNISAT);
-    this.$library.set(lib);
     await this.getNetwork().then((network) => {
       if (this.config?.network !== network) {
         this.switchNetwork(network);
@@ -190,8 +184,8 @@ export default class UnisatProvider extends WalletProvider {
       this.$store.setKey("balance", totalBalance);
     });
     this.$store.setKey("connected", true);
-    const balance = await lib.getBalance();
-    if (balance) this.$store.setKey("balance", balance.total);
+    const balance = await this.getBalance();
+    if (balance) this.$store.setKey("balance", balance);
   }
 
   async switchNetwork(network: NetworkType): Promise<void> {

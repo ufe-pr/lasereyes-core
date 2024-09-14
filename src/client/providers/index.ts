@@ -6,7 +6,6 @@ import { LaserEyesClient } from "..";
 export abstract class WalletProvider {
   readonly $store: MapStore<LaserEyesStoreType>;
   readonly $network: WritableAtom<NetworkType>;
-  readonly $library: WritableAtom;
 
   constructor(
     stores: {
@@ -15,22 +14,21 @@ export abstract class WalletProvider {
       readonly $library: WritableAtom;
     },
     readonly parent: LaserEyesClient,
-    readonly config?: Config,
+    readonly config?: Config
   ) {
     this.$store = stores.$store;
     this.$network = stores.$network;
-    this.$library = stores.$library;
 
     this.initialize();
   }
+
+  disconnect(): void {}
 
   abstract initialize(): void;
 
   abstract dispose(): void;
 
   abstract connect(defaultWallet: ProviderType): Promise<void>;
-
-  disconnect(): void {}
 
   abstract requestAccounts(): Promise<string[]>;
 
@@ -46,17 +44,14 @@ export abstract class WalletProvider {
 
   abstract sendBTC(to: string, amount: number): Promise<string>;
 
-  abstract signMessage(
-    message: string,
-    toSignAddress?: string
-  ): Promise<string>;
+  abstract signMessage(message: string, toSignAddress?: string): Promise<string>;
 
   abstract signPsbt(
     tx: string,
     psbtHex: string,
     psbtBase64: string,
     finalize?: boolean,
-    broadcast?: boolean,
+    broadcast?: boolean
   ): Promise<
     | {
         signedPsbtHex: string | undefined;
