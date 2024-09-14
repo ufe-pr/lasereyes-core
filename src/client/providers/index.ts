@@ -11,7 +11,6 @@ export abstract class WalletProvider {
     stores: {
       readonly $store: MapStore<LaserEyesStoreType>;
       readonly $network: WritableAtom<NetworkType>;
-      readonly $library: WritableAtom;
     },
     readonly parent: LaserEyesClient,
     readonly config?: Config

@@ -11,10 +11,6 @@ client.$store.listen((state) => {
   console.log("state changed", state);
 });
 
-client.$library.listen((lib) => {
-  console.log("Library changed", lib);
-});
-
 client.$network.listen((network) => {
   console.log("Network changed", network);
 });

@@ -32,7 +32,6 @@ export class LaserEyesClient {
     stores: {
       readonly $store: MapStore<LaserEyesStoreType>;
       readonly $network: WritableAtom<NetworkType>;
-      readonly $library: WritableAtom;
     },
     readonly config?: Config
   ) {
