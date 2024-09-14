@@ -23,11 +23,10 @@ export default class UnisatProvider extends WalletProvider {
 
   initialize() {
     this.observer = new MutationObserver(() => {
-      const unisatLib = (window as any)?.unisat;
-      if (unisatLib) {
+      if (this.library) {
         this.$store.setKey("hasProvider", {
           ...this.$store.get().hasProvider,
-          unisat: true,
+          [UNISAT]: true,
         });
         this.observer?.disconnect();
       }
