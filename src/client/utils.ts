@@ -7,16 +7,7 @@ import {
   MAINNET,
   FRACTAL_MAINNET,
 } from "../constants/networks";
-import {
-  LEATHER,
-  MAGIC_EDEN,
-  OKX,
-  OYL,
-  PHANTOM,
-  UNISAT,
-  WIZZ,
-  XVERSE,
-} from "../constants/wallets";
+import { LEATHER, MAGIC_EDEN, OKX, OYL, PHANTOM, UNISAT, WIZZ, XVERSE } from "../constants/wallets";
 import { NetworkType, ProviderType } from "../types";
 import { LaserEyesStoreType } from "./types";
 
@@ -82,14 +73,14 @@ export function createStores(): {
       accounts: [],
       balance: undefined,
       hasProvider: {
-        unisat: false,
-        xverse: false,
-        oyl: false,
-        "magic-eden": false,
-        okx: false,
-        leather: false,
-        phantom: false,
-        wizz: false,
+        [UNISAT]: false,
+        [XVERSE]: false,
+        [OYL]: false,
+        [MAGIC_EDEN]: false,
+        [OKX]: false,
+        [LEATHER]: false,
+        [PHANTOM]: false,
+        [WIZZ]: false,
       },
     }),
     $network: atom(MAINNET),
