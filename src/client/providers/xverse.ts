@@ -5,13 +5,13 @@ import {
   ProviderType,
   NetworkType,
   XVERSE,
-  LOCAL_STORAGE_DEFAULT_WALLET,
   getXverseNetwork,
   MAINNET,
   TESTNET,
   TESTNET4,
   SIGNET,
   FRACTAL_TESTNET,
+  LaserEyesStoreType,
 } from "../..";
 import {
   findOrdinalsAddress,
@@ -19,7 +19,20 @@ import {
   getBTCBalance,
   getBitcoinNetwork,
 } from "../../lib/helpers";
+import { MapStore, listenKeys } from "nanostores";
+import { persistentMap } from "@nanostores/persistent";
 
+const keysToPersist = [
+  "address",
+  "paymentAddress",
+  "publicKey",
+  "paymentPublicKey",
+  "balance",
+] as const;
+
+type PersistedKey = (typeof keysToPersist)[number];
+
+const XVERSE_WALLET_PERSISTENCE_KEY = "XVERSE_CONNECTED_WALLET_STATE";
 export default class XVerseProvider extends WalletProvider {
   public get library(): any | undefined {
     return (window as any).BitcoinProvider;
@@ -28,9 +41,61 @@ export default class XVerseProvider extends WalletProvider {
   public get network(): NetworkType {
     return this.$network.get();
   }
+
   observer?: MutationObserver;
+  $valueStore: MapStore<Record<PersistedKey, string>> = persistentMap(
+    XVERSE_WALLET_PERSISTENCE_KEY,
+    {
+      address: "",
+      paymentAddress: "",
+      paymentPublicKey: "",
+      publicKey: "",
+      balance: "",
+    }
+  );
+
+  removeSubscriber?: Function;
+
+  restorePersistedValues() {
+    const vals = this.$valueStore.get();
+    for (const key of keysToPersist) {
+      this.$store.setKey(key, vals[key]);
+    }
+  }
+
+  watchStateChange(
+    newState: LaserEyesStoreType,
+    _: LaserEyesStoreType | undefined,
+    changedKey: keyof LaserEyesStoreType | undefined
+  ) {
+    if (changedKey && newState.provider === XVERSE) {
+      if (changedKey === "balance") {
+        this.$valueStore.setKey("balance", newState.balance?.toString() ?? "");
+      } else if ((keysToPersist as readonly string[]).includes(changedKey)) {
+        this.$valueStore.setKey(changedKey as PersistedKey, newState[changedKey]?.toString() ?? "");
+      }
+    }
+  }
 
   initialize(): void {
+    listenKeys(this.$store, ["provider"], (newVal) => {
+      if (newVal.provider !== XVERSE) {
+        if (this.removeSubscriber) {
+          this.$valueStore.set({
+            address: "",
+            paymentAddress: "",
+            paymentPublicKey: "",
+            publicKey: "",
+            balance: "",
+          });
+          this.removeSubscriber();
+          this.removeSubscriber = undefined;
+        }
+      } else {
+        this.removeSubscriber = this.$store.subscribe(this.watchStateChange.bind(this));
+      }
+    });
+
     this.observer = new MutationObserver(() => {
       const xverseLib = (window as any)?.XverseProviders?.BitcoinProvider;
       if (xverseLib) {
@@ -43,18 +108,22 @@ export default class XVerseProvider extends WalletProvider {
     });
     this.observer.observe(document, { childList: true, subtree: true });
   }
-  addListeners() {}
-
-  removeListeners() {}
 
   dispose() {
     this.observer?.disconnect();
-    this.removeListeners();
   }
 
   async connect(_: ProviderType): Promise<void> {
+    const { address, paymentAddress } = this.$valueStore!.get();
+
     try {
-      localStorage?.setItem(LOCAL_STORAGE_DEFAULT_WALLET, XVERSE);
+      if (address) {
+        this.restorePersistedValues();
+        getBTCBalance(paymentAddress, this.network).then((totalBalance) => {
+          this.$store.setKey("balance", totalBalance);
+        });
+        return;
+      }
       let xverseNetwork = getXverseNetwork(this.network || MAINNET);
       const getAddressOptions = {
         payload: {
@@ -65,16 +134,15 @@ export default class XVerseProvider extends WalletProvider {
           },
         },
         onFinish: (response: any) => {
-          this.$store.setKey("publicKey", String(response.addresses[0].publicKey));
-          this.$store.setKey("paymentPublicKey", String(response.addresses[1].publicKey));
-
           const foundAddress = findOrdinalsAddress(response.addresses);
           const foundPaymentAddress = findPaymentAddress(response.addresses);
           if (foundAddress && foundPaymentAddress) {
+            this.$store.setKey("provider", XVERSE);
             this.$store.setKey("address", foundAddress.address);
             this.$store.setKey("paymentAddress", foundPaymentAddress.address);
-            this.$store.setKey("provider", XVERSE);
           }
+          this.$store.setKey("publicKey", String(response.addresses[0].publicKey));
+          this.$store.setKey("paymentPublicKey", String(response.addresses[1].publicKey));
 
           getBTCBalance(foundPaymentAddress.address, this.network).then((totalBalance) => {
             this.$store.setKey("balance", totalBalance);
