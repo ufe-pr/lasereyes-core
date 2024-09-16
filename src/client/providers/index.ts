@@ -2,9 +2,11 @@ import { MapStore, WritableAtom } from "nanostores";
 import { LaserEyesStoreType } from "../types";
 import { Config, NetworkType, ProviderType } from "../../types";
 import { LaserEyesClient } from "..";
+
 export const UNSUPPORTED_PROVIDER_METHOD_ERROR = new Error(
   "The connected wallet doesn't support this method..."
 );
+export const WALLET_NOT_INSTALLED_ERROR = new Error("Wallet is not installed");
 export abstract class WalletProvider {
   readonly $store: MapStore<LaserEyesStoreType>;
   readonly $network: WritableAtom<NetworkType>;
